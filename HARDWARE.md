@@ -80,15 +80,15 @@
 
 ### Fizyczne połączenie
 
-Zasilanie: **5V**
-
-| Pin Nucleo | Kanał  | Złącze      |
-|------------|--------|-------------|
-| PA0        | IR_CH1 | CN8 A0      |
-| PA1        | IR_CH2 | CN8 A1      |
-| PA2        | IR_CH3 | CN7 pin 37  |
-| PA3        | IR_CH4 | CN10 pin 9  |
-| PC6        | IR_CH5 | CN7 pin 17  |
+| Pin czujnika | Pin Nucleo | Złącze Nucleo | Funkcja          |
+|--------------|------------|---------------|------------------|
+| VCC          | 5V         | CN7 pin 18    | Zasilanie (5V)   |
+| GND          | GND        | CN7 pin 20    | Masa wspólna     |
+| OUT1         | PA0        | CN8 pin A0    | IR_CH1           |
+| OUT2         | PA1        | CN8 pin A1    | IR_CH2           |
+| OUT3         | PA2        | CN7 pin 37    | IR_CH3           |
+| OUT4         | PA3        | CN10 pin 9    | IR_CH4           |
+| OUT5         | PC6        | CN7 pin 17    | IR_CH5           |
 
 ### Konfiguracja CubeMX (skonfigurowane w .ioc)
 

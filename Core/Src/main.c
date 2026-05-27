@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ir_sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,6 +104,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    uint8_t ir_channels = IR_Sensor_Read();
+
+    if (IR_Sensor_AnyBlack(ir_channels))
+    {
+      HAL_GPIO_WritePin(LED_USER_GPIO_Port, LED_USER_Pin, GPIO_PIN_SET);
+    }
+    else
+    {
+      HAL_GPIO_WritePin(LED_USER_GPIO_Port, LED_USER_Pin, GPIO_PIN_RESET);
+    }
+
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -305,6 +317,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_USER_GPIO_Port, LED_USER_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, M_IN1_Pin|M_IN2_Pin|M_IN3_Pin|M_IN4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : IR_CH1_Pin IR_CH2_Pin IR_CH3_Pin IR_CH4_Pin */
@@ -312,6 +327,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_USER_Pin */
+  GPIO_InitStruct.Pin = LED_USER_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_USER_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M_IN1_Pin M_IN2_Pin M_IN3_Pin M_IN4_Pin */
   GPIO_InitStruct.Pin = M_IN1_Pin|M_IN2_Pin|M_IN3_Pin|M_IN4_Pin;
