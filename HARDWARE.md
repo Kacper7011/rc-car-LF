@@ -12,7 +12,7 @@
 |---|---|
 | Mikrokontroler | STM32C051C8T6 |
 | Rdzeń | ARM Cortex-M0+ |
-| Taktowanie | 48 MHz HSI |
+| Taktowanie | 12 MHz (HSI 48 MHz / DIV4) |
 | Pamięć Flash | 64 KB |
 | Pamięć RAM | 12 KB |
 | Zasilanie | 3,3V (logika) / 5V (CN7/CN10 U5V) |
@@ -37,16 +37,16 @@
 
 ### Fizyczne połączenie
 
-| Pin L298N | Pin Nucleo | Złącze      | Funkcja              |
-|-----------|------------|-------------|----------------------|
-| ENA       | PA8        | CN10 pin 23 | TIM1 CH1 AF2 (PWM)   |
-| IN1       | PB0        | CN10 pin 33 | GPIO Output          |
-| IN2       | PB1        | CN8 A3      | GPIO Output          |
-| IN3       | PB3        | CN7 pin 34  | GPIO Output          |
-| IN4       | PB5        | CN9 D6      | GPIO Output          |
-| ENB       | PB4        | CN9 D4      | TIM3 CH1 AF1 (PWM)   |
-| GND       | GND        | —           | Masa wspólna         |
-| 5V (VSS)  | +5V        | CN7 pin 18  | Zasilanie logiki     |
+| Pin L298N | Pin Nucleo | Złącze      | Funkcja              | User Label |
+|-----------|------------|-------------|----------------------|------------|
+| ENA       | PA8        | CN10 pin 23 | TIM1 CH1 AF2 (PWM)   | `M_ENA`    |
+| IN1       | PB0        | CN10 pin 33 | GPIO Output          | `M_IN1`    |
+| IN2       | PB1        | CN8 A3      | GPIO Output          | `M_IN2`    |
+| IN3       | PB3        | CN7 pin 34  | GPIO Output          | `M_IN3`    |
+| IN4       | PB5        | CN9 D6      | GPIO Output          | `M_IN4`    |
+| ENB       | PB4        | CN9 D4      | TIM3 CH1 AF1 (PWM)   | `M_ENB`    |
+| GND       | GND        | —           | Masa wspólna         | —          |
+| 5V (VSS)  | +5V        | CN7 pin 18  | Zasilanie logiki     | —          |
 
 > Zasilanie silników (VS – 5–12V) podłączone bezpośrednio do zewnętrznego źródła, nie do Nucleo.
 
@@ -58,6 +58,7 @@
 3. Channel 1: **PWM Generation CH1**.
 4. Parameter Settings: Prescaler `47`, Counter Period `999`.
 5. Pin PA8 → `TIM1_CH1` (AF2) – przypisywany automatycznie.
+6. User Label pinu PA8: `M_ENA`.
 
 **TIM3 CH1 (ENB – PB4):**
 1. Przejdź do: **Timers → TIM3**.
@@ -65,11 +66,13 @@
 3. Channel 1: **PWM Generation CH1**.
 4. Parameter Settings: Prescaler `47`, Counter Period `999`.
 5. Pin PB4 → `TIM3_CH1` (AF1) – przypisywany automatycznie.
+6. User Label pinu PB4: `M_ENB`.
 
 **GPIO Output (PB0, PB1, PB3, PB5):**
 - GPIO output level: Low, Push Pull, No pull, Speed: Low.
+- User Labels: PB0 → `M_IN1`, PB1 → `M_IN2`, PB3 → `M_IN3`, PB5 → `M_IN4`.
 
-> Wynikowa częstotliwość PWM: 48 MHz / 48 / 1000 = **1000 Hz**.
+> Wynikowa częstotliwość PWM: 12 MHz / 48 / 1000 = **250 Hz**.
 
 ---
 
