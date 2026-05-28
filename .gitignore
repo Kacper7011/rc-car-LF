@@ -1,0 +1,8 @@
+Debug/*.elf
+Debug/*.hex
+Debug/*.map
+Debug/*.bin
+**/*.o
+**/*.d
+**/*.su
+**/*.cyclo
