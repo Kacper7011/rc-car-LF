@@ -18,12 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "tim.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
-#include <string.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,13 +44,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-UART_HandleTypeDef huart2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static void MX_USART2_UART_Init(void);
+static void set_left(int spd);
+static void set_right(int spd);
+void motor_forward(uint32_t speed);
+void motor_left(uint32_t speed);
+void motor_right(uint32_t speed);
+void motor_stop(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -87,9 +92,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
+  MX_TIM2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   GPIO_InitTypeDef ledInit = {0};
   ledInit.Pin   = GPIO_PIN_0;
   ledInit.Mode  = GPIO_MODE_OUTPUT_PP;
@@ -105,19 +112,27 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    uint8_t s1 = HAL_GPIO_ReadPin(IR_S1_GPIO_Port, IR_S1_Pin) == GPIO_PIN_SET ? 1 : 0;
-    uint8_t s2 = HAL_GPIO_ReadPin(IR_S2_GPIO_Port, IR_S2_Pin) == GPIO_PIN_SET ? 1 : 0;
-    uint8_t s3 = HAL_GPIO_ReadPin(IR_S3_GPIO_Port, IR_S3_Pin) == GPIO_PIN_SET ? 1 : 0;
-    uint8_t s4 = HAL_GPIO_ReadPin(IR_S4_GPIO_Port, IR_S4_Pin) == GPIO_PIN_SET ? 1 : 0;
-    uint8_t s5 = HAL_GPIO_ReadPin(IR_S5_GPIO_Port, IR_S5_Pin) == GPIO_PIN_SET ? 1 : 0;
+    int s1 = HAL_GPIO_ReadPin(IR_S1_GPIO_Port, IR_S1_Pin) == GPIO_PIN_RESET ? 1 : 0;
+    int s2 = HAL_GPIO_ReadPin(IR_S2_GPIO_Port, IR_S2_Pin) == GPIO_PIN_RESET ? 1 : 0;
+    int s3 = HAL_GPIO_ReadPin(IR_S3_GPIO_Port, IR_S3_Pin) == GPIO_PIN_RESET ? 1 : 0;
+    int s4 = HAL_GPIO_ReadPin(IR_S4_GPIO_Port, IR_S4_Pin) == GPIO_PIN_RESET ? 1 : 0;
+    int s5 = HAL_GPIO_ReadPin(IR_S5_GPIO_Port, IR_S5_Pin) == GPIO_PIN_RESET ? 1 : 0;
 
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, (s1 || s2 || s3 || s4 || s5) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    /* position: negative = line left, positive = line right */
+    int pos = -2*s1 - 1*s2 + 0*s3 + 1*s4 + 2*s5;
+    int cnt = s1 + s2 + s3 + s4 + s5;
 
-    char buf[32];
-    int len = snprintf(buf, sizeof(buf), "S1:%d S2:%d S3:%d S4:%d S5:%d\r\n", s1, s2, s3, s4, s5);
-    HAL_UART_Transmit(&huart2, (uint8_t *)buf, len, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, cnt ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-    HAL_Delay(200);
+    if (cnt == 0) {
+        motor_stop();
+    } else if (pos < -1) {
+        motor_left(700);
+    } else if (pos > 1) {
+        motor_right(700);
+    } else {
+        motor_forward(700);
+    }
   }
   /* USER CODE END 3 */
 }
@@ -164,34 +179,60 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void MX_USART2_UART_Init(void)
+static void set_left(int spd)
 {
-  /* Enable clocks */
-  __HAL_RCC_USART2_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  /* PA2 = USART2_TX, PA3 = USART2_RX (AF7) */
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pin       = GPIO_PIN_2 | GPIO_PIN_3;
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_NOPULL;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  huart2.Instance          = USART2;
-  huart2.Init.BaudRate     = 115200;
-  huart2.Init.WordLength   = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits     = UART_STOPBITS_1;
-  huart2.Init.Parity       = UART_PARITY_NONE;
-  huart2.Init.Mode         = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    if (spd >= 0) {
+        HAL_GPIO_WritePin(MOT_L_IN1_GPIO_Port, MOT_L_IN1_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(MOT_L_IN2_GPIO_Port, MOT_L_IN2_Pin, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(MOT_L_IN1_GPIO_Port, MOT_L_IN1_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(MOT_L_IN2_GPIO_Port, MOT_L_IN2_Pin, GPIO_PIN_RESET);
+        spd = -spd;
+    }
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, (uint32_t)spd);
 }
+
+static void set_right(int spd)
+{
+    if (spd >= 0) {
+        HAL_GPIO_WritePin(MOT_R_IN3_GPIO_Port, MOT_R_IN3_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(MOT_R_IN4_GPIO_Port, MOT_R_IN4_Pin, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(MOT_R_IN3_GPIO_Port, MOT_R_IN3_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(MOT_R_IN4_GPIO_Port, MOT_R_IN4_Pin, GPIO_PIN_RESET);
+        spd = -spd;
+    }
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, (uint32_t)spd);
+}
+
+void motor_forward(uint32_t speed)
+{
+    set_left((int)speed);
+    set_right((int)speed);
+}
+
+void motor_left(uint32_t speed)
+{
+    set_left((int)(speed / 3));
+    set_right((int)speed);
+}
+
+void motor_right(uint32_t speed)
+{
+    set_left((int)speed);
+    set_right((int)(speed / 3));
+}
+
+void motor_stop(void)
+{
+    HAL_GPIO_WritePin(MOT_L_IN1_GPIO_Port, MOT_L_IN1_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(MOT_L_IN2_GPIO_Port, MOT_L_IN2_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(MOT_R_IN3_GPIO_Port, MOT_R_IN3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(MOT_R_IN4_GPIO_Port, MOT_R_IN4_Pin, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
+}
+
 /* USER CODE END 4 */
 
 /**

@@ -57,6 +57,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define MOT_R_PWM_Pin GPIO_PIN_0
+#define MOT_R_PWM_GPIO_Port GPIOA
+#define MOT_L_IN1_Pin GPIO_PIN_2
+#define MOT_L_IN1_GPIO_Port GPIOG
+#define MOT_L_IN2_Pin GPIO_PIN_3
+#define MOT_L_IN2_GPIO_Port GPIOG
 #define IR_S1_Pin GPIO_PIN_8
 #define IR_S1_GPIO_Port GPIOC
 #define IR_S2_Pin GPIO_PIN_9
@@ -67,6 +73,12 @@ void Error_Handler(void);
 #define IR_S4_GPIO_Port GPIOC
 #define IR_S5_Pin GPIO_PIN_12
 #define IR_S5_GPIO_Port GPIOC
+#define MOT_R_IN3_Pin GPIO_PIN_0
+#define MOT_R_IN3_GPIO_Port GPIOD
+#define MOT_R_IN4_Pin GPIO_PIN_1
+#define MOT_R_IN4_GPIO_Port GPIOD
+#define MOT_L_PWM_Pin GPIO_PIN_4
+#define MOT_L_PWM_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
