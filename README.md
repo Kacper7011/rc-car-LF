@@ -8,7 +8,7 @@ Projekt samochodu zdalnie sterowanego (RC), który porusza się **autonomicznie 
 
 Samochód wykorzystuje 8-kanałowy czujnik podczerwieni (IR) do wykrywania linii na podłożu. Na podstawie odczytów z czujnika mikrokontroler oblicza korektę toru jazdy i steruje silnikami napędowymi oraz serwem skrętu.
 
-Projekt jest realizowany na platformie **STM32 NUCLEO-C051C8** (ARM Cortex-M0+) i pisany w języku C z użyciem biblioteki HAL generowanej przez STM32CubeMX.
+Projekt jest realizowany na platformie **STM32F446ZET6U** (ARM Cortex-M4) i pisany w języku C z użyciem biblioteki HAL generowanej przez STM32CubeMX.
 
 ---
 

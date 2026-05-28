@@ -1,119 +1,90 @@
 # HARDWARE – Połączenia i konfiguracja STM32CubeMX
 
-Źródło prawdy dla pinów i parametrów timerów: `Project_CAR.ioc`.
+Źródło prawdy dla pinów i parametrów timerów: `LineFollower.ioc`.
 
 ---
 
 ## Platforma
 
-### STM32 NUCLEO-C051C8
+### STM32F446ZET6U
 
 | Parametr | Wartość |
 |---|---|
-| Mikrokontroler | STM32C051C8T6 |
-| Rdzeń | ARM Cortex-M0+ |
-| Taktowanie | 12 MHz (HSI 48 MHz / DIV4) |
-| Pamięć Flash | 64 KB |
-| Pamięć RAM | 12 KB |
-| Zasilanie | 3,3V (logika) / 5V (CN7/CN10 U5V) |
-| Złącza rozszerzeń | CN7 (Morpho lewy), CN10 (Morpho prawy), CN5/CN6 (Arduino) |
+| Mikrokontroler | STM32F446ZET6U |
+| Rdzeń | ARM Cortex-M4 (FPU) |
+| Taktowanie | 16 MHz HSI |
+| Pamięć Flash | 512 KB |
+| Pamięć RAM | 128 KB |
 | Interfejs debugowania | ST-LINK/V2-1 (wbudowany, USB) |
 
 ---
 
-## 1. Sterownik silników L298N (silniki ARD-6292)
-
-### Opis modułu
+## 1. Sterownik silników L298N
 
 | Parametr | Wartość |
 |---|---|
 | Sterownik | L298N Dual H-Bridge |
 | Napięcie silników (VS) | 5–35V |
-| Napięcie logiki (VSS) | 5V (wbudowany regulator 5V) |
 | Prąd wyjściowy | maks. 2A na kanał |
-| Kanały | 2 (silnik A i silnik B) |
-| Sterowanie kierunkiem | IN1/IN2 (silnik A), IN3/IN4 (silnik B) |
-| Sterowanie prędkością | ENA – PWM silnik A, ENB – PWM silnik B |
 
-### Fizyczne połączenie
+### Silnik lewy
 
-| Pin L298N | Pin Nucleo | Złącze      | Funkcja              | User Label |
-|-----------|------------|-------------|----------------------|------------|
-| ENA       | PA8        | CN10 pin 23 | TIM1 CH1 AF2 (PWM)   | `M_ENA`    |
-| IN1       | PB0        | CN10 pin 33 | GPIO Output          | `M_IN1`    |
-| IN2       | PB1        | CN8 A3      | GPIO Output          | `M_IN2`    |
-| IN3       | PB3        | CN7 pin 34  | GPIO Output          | `M_IN3`    |
-| IN4       | PB5        | CN9 D6      | GPIO Output          | `M_IN4`    |
-| ENB       | PB4        | CN9 D4      | TIM3 CH1 AF1 (PWM)   | `M_ENB`    |
-| GND       | GND        | —           | Masa wspólna         | —          |
-| 5V (VSS)  | +5V        | CN7 pin 18  | Zasilanie logiki     | —          |
+| Pin L298N | Pin STM32 | Funkcja | User Label |
+|-----------|-----------|---------|------------|
+| IN1 | PG2 | GPIO Output (kierunek) | MOT_L_IN1 |
+| IN2 | PG3 | GPIO Output (kierunek) | MOT_L_IN2 |
+| ENA | PB4 | TIM3_CH1 AF2 (PWM) | MOT_L_PWM |
 
-> Zasilanie silników (VS – 5–12V) podłączone bezpośrednio do zewnętrznego źródła, nie do Nucleo.
+### Silnik prawy
 
-### Konfiguracja CubeMX (skonfigurowane w .ioc)
+| Pin L298N | Pin STM32 | Funkcja | User Label |
+|-----------|-----------|---------|------------|
+| IN3 | PD0 | GPIO Output (kierunek) | MOT_R_IN3 |
+| IN4 | PD1 | GPIO Output (kierunek) | MOT_R_IN4 |
+| ENB | PA0 | TIM2_CH1 AF1 (PWM) | MOT_R_PWM |
 
-**TIM1 CH1 (ENA – PA8):**
-1. Przejdź do: **Timers → TIM1**.
-2. Clock Source: **Internal Clock**.
-3. Channel 1: **PWM Generation CH1**.
-4. Parameter Settings: Prescaler `47`, Counter Period `999`.
-5. Pin PA8 → `TIM1_CH1` (AF2) – przypisywany automatycznie.
-6. User Label pinu PA8: `M_ENA`.
+### Konfiguracja timerów PWM
 
-**TIM3 CH1 (ENB – PB4):**
-1. Przejdź do: **Timers → TIM3**.
-2. Clock Source: **Internal Clock**.
-3. Channel 1: **PWM Generation CH1**.
-4. Parameter Settings: Prescaler `47`, Counter Period `999`.
-5. Pin PB4 → `TIM3_CH1` (AF1) – przypisywany automatycznie.
-6. User Label pinu PB4: `M_ENB`.
+| Timer | Kanał | Pin | Prescaler | ARR | Częstotliwość PWM |
+|-------|-------|-----|-----------|-----|-------------------|
+| TIM3 | CH1 | PB4 | 839 | 999 | ~19 Hz |
+| TIM2 | CH1 | PA0 | 839 | ARR=999 | ~19 Hz |
 
-**GPIO Output (PB0, PB1, PB3, PB5):**
-- GPIO output level: Low, Push Pull, No pull, Speed: Low.
-- User Labels: PB0 → `M_IN1`, PB1 → `M_IN2`, PB3 → `M_IN3`, PB5 → `M_IN4`.
-
-> Wynikowa częstotliwość PWM: 12 MHz / 48 / 1000 = **250 Hz**.
+> Zakres duty cycle: 0–999 (0% – 100%)
 
 ---
 
 ## 2. Czujnik IR – 5 Channel Infrared Reflective Sensor
 
-### Fizyczne połączenie
+Zasilanie: **5V** | Logika: aktywna LOW (GPIO_PIN_RESET = wykrycie linii)
 
-Zasilanie: **5V**
+| Pin STM32 | Kanał | User Label |
+|-----------|-------|------------|
+| PC8 | S1 (lewy skrajny) | IR_S1 |
+| PC9 | S2 (lewy) | IR_S2 |
+| PC10 | S3 (środkowy) | IR_S3 |
+| PC11 | S4 (prawy) | IR_S4 |
+| PC12 | S5 (prawy skrajny) | IR_S5 |
 
-| Pin Nucleo | Kanał  | Złącze      |
-|------------|--------|-------------|
-| PA0        | IR_CH1 | CN8 A0      |
-| PA1        | IR_CH2 | CN8 A1      |
-| PA2        | IR_CH3 | CN7 pin 37  |
-| PA3        | IR_CH4 | CN10 pin 9  |
-| PC6        | IR_CH5 | CN7 pin 17  |
-
-### Konfiguracja CubeMX (skonfigurowane w .ioc)
-
-Wszystkie 5 pinów skonfigurowane jako `GPIO_Input`, Pull-up, etykiety `IR_CH1` … `IR_CH5`.
+Wszystkie piny: `GPIO_Input`, Pull-up wyłączony.
 
 ---
 
-## 3. Przycisk użytkownika
+## 3. LED diagnostyczna
 
-### Fizyczne połączenie
-
-| Komponent | Pin Nucleo | Złącze | Funkcja             |
-|-----------|------------|--------|---------------------|
-| B1 (USER) | PC13       | CN7    | GPIO Input, Pull-up |
-
-### Konfiguracja CubeMX (skonfigurowane w .ioc)
-
-- PC13 → `GPIO_Input`, Pull-up, User Label: `BTN_USER`.
+| LED | Pin STM32 | Funkcja |
+|-----|-----------|---------|
+| LD1 (zielona) | PB0 | GPIO Output — świeci gdy linia wykryta |
 
 ---
 
-## 4. Podsumowanie zajętych timerów
+## 4. Podsumowanie zajętych zasobów
 
-
-| Timer | Kanał | Pin | Label   | Zastosowanie             | Prescaler | Period |
-|-------|-------|-----|---------|--------------------------|-----------|--------|
-| TIM1  | CH1   | PA8 | M_ENA   | L298N silnik A (PWM)     | 47        | 999    |
-| TIM3  | CH1   | PB4 | M_ENB   | L298N silnik B (PWM)     | 47        | 999    |
+| Zasób | Pin | Funkcja |
+|-------|-----|---------|
+| TIM2 CH1 | PA0 | PWM silnik prawy |
+| TIM3 CH1 | PB4 | PWM silnik lewy |
+| GPIO OUT | PG2, PG3 | Kierunek silnik lewy |
+| GPIO OUT | PD0, PD1 | Kierunek silnik prawy |
+| GPIO IN | PC8–PC12 | Czujniki IR S1–S5 |
+| GPIO OUT | PB0 | LED diagnostyczna |
