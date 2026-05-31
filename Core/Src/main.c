@@ -33,7 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BASE_SPEED   500   /* nominal speed 0-999 */
+#define BASE_SPEED   200   /* nominal speed 0-999 */
+#define SPIN_SPEED   350   /* pivot speed when line is lost (one wheel reversed) */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,6 +59,8 @@ void motor_left_gentle(uint32_t speed);
 void motor_left_sharp(uint32_t speed);
 void motor_right_gentle(uint32_t speed);
 void motor_right_sharp(uint32_t speed);
+void motor_spin_left(uint32_t speed);
+void motor_spin_right(uint32_t speed);
 void motor_stop(void);
 /* USER CODE END PFP */
 
@@ -128,26 +131,26 @@ int main(void)
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, cnt ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     if (cnt == 0) {
-        /* Line lost – rotate in last known direction to recover */
-        if      (last_dir == DIR_LEFT)  motor_left_sharp(BASE_SPEED);
-        else if (last_dir == DIR_RIGHT) motor_right_sharp(BASE_SPEED);
+        /* Line lost – pivot in place (one wheel reversed) for fast 90-degree recovery */
+        if      (last_dir == DIR_LEFT)  motor_spin_left(SPIN_SPEED);
+        else if (last_dir == DIR_RIGHT) motor_spin_right(SPIN_SPEED);
         else                            motor_stop();
     } else if (pos <= -2) {
-        /* Line far left – sharp left turn (inner wheel stops) */
-        motor_left_sharp(BASE_SPEED);
-        last_dir = DIR_LEFT;
-    } else if (pos == -1) {
-        /* Line slightly left – gentle left correction */
-        motor_left_gentle(BASE_SPEED);
-        last_dir = DIR_LEFT;
-    } else if (pos >= 2) {
-        /* Line far right – sharp right turn (inner wheel stops) */
+        /* Sensors detect far left → no signal on right → follow right */
         motor_right_sharp(BASE_SPEED);
         last_dir = DIR_RIGHT;
-    } else if (pos == 1) {
-        /* Line slightly right – gentle right correction */
+    } else if (pos == -1) {
+        /* Sensors detect slightly left → gentle right correction */
         motor_right_gentle(BASE_SPEED);
         last_dir = DIR_RIGHT;
+    } else if (pos >= 2) {
+        /* Sensors detect far right → no signal on left → follow left */
+        motor_left_sharp(BASE_SPEED);
+        last_dir = DIR_LEFT;
+    } else if (pos == 1) {
+        /* Sensors detect slightly right → gentle left correction */
+        motor_left_gentle(BASE_SPEED);
+        last_dir = DIR_LEFT;
     } else {
         /* Line centered (pos == 0) – go straight */
         motor_forward(BASE_SPEED);
@@ -256,6 +259,20 @@ void motor_right_sharp(uint32_t speed)
 {
     set_left((int)speed);
     set_right(0);
+}
+
+/* Pivot left: left wheel backward, right wheel forward – spins in place */
+void motor_spin_left(uint32_t speed)
+{
+    set_left(-(int)speed);
+    set_right((int)speed);
+}
+
+/* Pivot right: left wheel forward, right wheel backward – spins in place */
+void motor_spin_right(uint32_t speed)
+{
+    set_left((int)speed);
+    set_right(-(int)speed);
 }
 
 void motor_stop(void)
