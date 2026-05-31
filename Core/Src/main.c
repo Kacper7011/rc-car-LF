@@ -2,7 +2,7 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
+  * @brief          : Main program body — STM32F446ZET6U Line Follower
   ******************************************************************************
   * @attention
   *
@@ -33,7 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BASE_SPEED   200   /* nominal speed 0-999 */
+#define SPIN_SPEED   350   /* pivot speed when line is lost (one wheel reversed) */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,7 +45,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+typedef enum { DIR_LEFT = -1, DIR_NONE = 0, DIR_RIGHT = 1 } Direction;
+static Direction last_dir = DIR_NONE;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -53,8 +55,12 @@ void SystemClock_Config(void);
 static void set_left(int spd);
 static void set_right(int spd);
 void motor_forward(uint32_t speed);
-void motor_left(uint32_t speed);
-void motor_right(uint32_t speed);
+void motor_left_gentle(uint32_t speed);
+void motor_left_sharp(uint32_t speed);
+void motor_right_gentle(uint32_t speed);
+void motor_right_sharp(uint32_t speed);
+void motor_spin_left(uint32_t speed);
+void motor_spin_right(uint32_t speed);
 void motor_stop(void);
 /* USER CODE END PFP */
 
@@ -118,20 +124,36 @@ int main(void)
     int s4 = HAL_GPIO_ReadPin(IR_S4_GPIO_Port, IR_S4_Pin) == GPIO_PIN_RESET ? 1 : 0;
     int s5 = HAL_GPIO_ReadPin(IR_S5_GPIO_Port, IR_S5_Pin) == GPIO_PIN_RESET ? 1 : 0;
 
-    /* position: negative = line left, positive = line right */
+    /* Weighted position: negative = line left, positive = line right */
     int pos = -2*s1 - 1*s2 + 0*s3 + 1*s4 + 2*s5;
     int cnt = s1 + s2 + s3 + s4 + s5;
 
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, cnt ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
     if (cnt == 0) {
-        motor_stop();
-    } else if (pos < -1) {
-        motor_left(700);
-    } else if (pos > 1) {
-        motor_right(700);
+        /* Line lost – pivot in place (one wheel reversed) for fast 90-degree recovery */
+        if      (last_dir == DIR_LEFT)  motor_spin_left(SPIN_SPEED);
+        else if (last_dir == DIR_RIGHT) motor_spin_right(SPIN_SPEED);
+        else                            motor_stop();
+    } else if (pos <= -2) {
+        /* Sensors detect far left → no signal on right → follow right */
+        motor_right_sharp(BASE_SPEED);
+        last_dir = DIR_RIGHT;
+    } else if (pos == -1) {
+        /* Sensors detect slightly left → gentle right correction */
+        motor_right_gentle(BASE_SPEED);
+        last_dir = DIR_RIGHT;
+    } else if (pos >= 2) {
+        /* Sensors detect far right → no signal on left → follow left */
+        motor_left_sharp(BASE_SPEED);
+        last_dir = DIR_LEFT;
+    } else if (pos == 1) {
+        /* Sensors detect slightly right → gentle left correction */
+        motor_left_gentle(BASE_SPEED);
+        last_dir = DIR_LEFT;
     } else {
-        motor_forward(700);
+        /* Line centered (pos == 0) – go straight */
+        motor_forward(BASE_SPEED);
     }
   }
   /* USER CODE END 3 */
@@ -211,16 +233,46 @@ void motor_forward(uint32_t speed)
     set_right((int)speed);
 }
 
-void motor_left(uint32_t speed)
+/* Gentle left: inner (left) wheel at half speed */
+void motor_left_gentle(uint32_t speed)
 {
-    set_left((int)(speed / 3));
+    set_left((int)(speed / 2));
     set_right((int)speed);
 }
 
-void motor_right(uint32_t speed)
+/* Sharp left: inner (left) wheel stops completely */
+void motor_left_sharp(uint32_t speed)
+{
+    set_left(0);
+    set_right((int)speed);
+}
+
+/* Gentle right: inner (right) wheel at half speed */
+void motor_right_gentle(uint32_t speed)
 {
     set_left((int)speed);
-    set_right((int)(speed / 3));
+    set_right((int)(speed / 2));
+}
+
+/* Sharp right: inner (right) wheel stops completely */
+void motor_right_sharp(uint32_t speed)
+{
+    set_left((int)speed);
+    set_right(0);
+}
+
+/* Pivot left: left wheel backward, right wheel forward – spins in place */
+void motor_spin_left(uint32_t speed)
+{
+    set_left(-(int)speed);
+    set_right((int)speed);
+}
+
+/* Pivot right: left wheel forward, right wheel backward – spins in place */
+void motor_spin_right(uint32_t speed)
+{
+    set_left((int)speed);
+    set_right(-(int)speed);
 }
 
 void motor_stop(void)

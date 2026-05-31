@@ -1,6 +1,6 @@
 ## Cel projektu
 
-Budowa samochodu zdalnie sterowanego RC poruszającego się autonomicznie po linii (5-kanałowy czujnik IR). Projekt oparty na mikrokontrolerze STM32 NUCLEO-C051C8.
+Budowa samochodu zdalnie sterowanego RC poruszającego się autonomicznie po linii (5-kanałowy czujnik IR). Projekt oparty na mikrokontrolerze STM32F446ZET6U.
 
 ---
 
@@ -14,7 +14,7 @@ Budowa samochodu zdalnie sterowanego RC poruszającego się autonomicznie po lin
 
 | Komponent | Ilość |
 |---|---|
-| STM32 NUCLEO-C051C8 | 1x |
+| STM32F446ZET6U | 1x |
 | Moduł sterownika silników L298N | 1x |
 | Silnik DC ARD-6292 | 2x |
 | 5-kanałowy czujnik IR (5 Channel Infrared Reflective Sensor) | 1x |
@@ -23,7 +23,7 @@ Budowa samochodu zdalnie sterowanego RC poruszającego się autonomicznie po lin
 
 ## Platforma
 
-Mikrokontroler **STM32 NUCLEO-C051C8** (ARM Cortex-M0+, 48 MHz HSI). Szczegółowe parametry płytki: [`HARDWARE.md`](HARDWARE.md).
+Mikrokontroler **STM32F446ZET6U** (ARM Cortex-M4, 16 MHz HSI). Szczegółowe parametry płytki: [`HARDWARE.md`](HARDWARE.md).
 ---
 
 ## Dokumentacja techniczna
