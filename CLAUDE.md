@@ -81,7 +81,6 @@ Daj znać gdy gotowe – wtedy napiszę kod korzystający z tej konfiguracji.
 - Cały kod projektu jest przechowywany na GitHubie.
 - Każdy nowy feature (funkcjonalność) dostaje **osobny branch** o nazwie odpowiadającej tej funkcjonalności, np.:
   - `feature/line-follower`
-  - `feature/motor-control`
 - Claude pracuje **wyłącznie na branchu danego feature'a** – nigdy bezpośrednio na `main`.
 
 ### Przepływ pracy (workflow)
